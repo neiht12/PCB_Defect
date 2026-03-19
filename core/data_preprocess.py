@@ -142,26 +142,3 @@ class VOC2YOLOConverter:
         logging.info(f"HOÀN TẤT! Thành công: Train({train_success}), Val({val_success}), Test({test_success})")
 
 
-# ==========================================
-# KHỐI THỰC THI CHÍNH (ENTRY POINT)
-# ==========================================
-if __name__ == "__main__":
-    # Định nghĩa cấu hình
-    CLASSES = {
-        "missing_hole": 0,
-        "mouse_bite": 1,
-        "open_circuit": 2,
-        "short": 3,
-        "spur": 4,
-        "spurious_copper": 5
-    }
-
-    # Khởi tạo và chạy Pipeline
-    pipeline = VOC2YOLOConverter(
-        root_dir="PCB_DATASET",
-        output_dir="YOLO_DATASET",
-        classes=CLASSES,
-        split_ratio=(0.8, 0.1, 0.1)
-    )
-
-    pipeline.run_pipeline()

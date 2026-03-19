@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Kiểm Tra Lỗi PCB</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f7f6; padding: 20px; }
+        .container { max-width: 800px; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: auto; }
+        h1 { color: #2c3e50; }
+        .upload-btn { background-color: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+        .upload-btn:hover { background-color: #2980b9; }
+        #canvas-container { margin-top: 20px; position: relative; display: flex; justify-content: center; }
+        canvas { max-width: 100%; border: 1px solid #bdc3c7; border-radius: 5px; }
+        #status { margin-top: 15px; font-weight: bold; color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔍 Trạm Kiểm Tra Lỗi Bản Mạch (PCB)</h1>
+    <p>Chọn một bức ảnh bo mạch để AI phân tích và tìm ra điểm lỗi.</p>
+
+    <!-- Nút chọn file -->
+    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+    <button class="upload-btn" onclick="document.getElementById('imageInput').click()">📁 Chọn ảnh PCB</button>
+    <button class="upload-btn" id="predictBtn" style="background-color: #27ae60; display: none;">🚀 Nhận diện ngay</button>
+
+    <div id="status"></div>
+
+    <!-- Nơi hiển thị ảnh và vẽ khung -->
+    <div id="canvas-container">
+        <canvas id="resultCanvas"></canvas>
+    </div>
+</div>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const predictBtn = document.getElementById('predictBtn');
+    const canvas = document.getElementById('resultCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('status');
+    let currentImage = new Image();
+
+    // 1. Khi người dùng chọn ảnh xong, hiển thị ảnh lên màn hình
+    imageInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImage.src = e.target.result;
+                currentImage.onload = function() {
+                    // Chỉnh kích thước canvas bằng kích thước ảnh thật
+                    canvas.width = currentImage.width;
+                    canvas.height = currentImage.height;
+                    // Vẽ ảnh lên canvas
+                    ctx.drawImage(currentImage, 0, 0);
+                    // Hiện nút Nhận diện
+                    predictBtn.style.display = "inline-block";
+                    statusText.innerText = "";
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 2. Bấm nút nhận diện -> Gửi ảnh sang FastAPI
+    predictBtn.addEventListener('click', async function() {
+        const file = imageInput.files[0];
+        if (!file) return;
+
+        // Đóng gói file để gửi qua API
+        const formData = new FormData();
+        formData.append("file", file);
+
+        statusText.style.color = "#f39c12";
+        statusText.innerText = "⏳ AI đang phân tích, vui lòng đợi...";
+
+        try {
+            // GỌI BACKEND API (Sửa lại IP/Port nếu server của bạn chạy port khác)
+            const response = await fetch("http://127.0.0.1:8000/predict", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                statusText.innerText = "❌ Lỗi: " + data.error;
+                return;
+            }
+
+            // Vẽ lại ảnh gốc để xóa các khung hình cũ (nếu có)
+            ctx.drawImage(currentImage, 0, 0);
+
+            // 3. Đọc dữ liệu JSON trả về và vẽ Bounding Box
+            if (data.total_defects === 0) {
+                statusText.style.color = "#27ae60";
+                statusText.innerText = "✅ Bản mạch hoàn hảo, không phát hiện lỗi!";
+            } else {
+                statusText.style.color = "#e74c3c";
+                statusText.innerText = `⚠️ CẢNH BÁO: Phát hiện ${data.total_defects} lỗi trên bản mạch!`;
+
+                data.detections.forEach(det => {
+                    const [x1, y1, x2, y2] = det.bbox;
+                    const width = x2 - x1;
+                    const height = y2 - y1;
+
+                    // Cài đặt nét vẽ khung (Màu đỏ, dày 3px)
+                    ctx.strokeStyle = "red";
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(x1, y1, width, height);
+
+                    // Cài đặt chữ hiển thị tên lỗi (Nền đỏ, chữ trắng)
+                    ctx.fillStyle = "red";
+                    ctx.fillRect(x1, y1 - 25, ctx.measureText(det.class_name).width + 60, 25);
+
+                    ctx.fillStyle = "white";
+                    ctx.font = "18px Arial bold";
+                    ctx.fillText(`${det.class_name} (${(det.confidence * 100).toFixed(1)}%)`, x1 + 5, y1 - 7);
+                });
+            }
+        } catch (error) {
+            statusText.style.color = "#e74c3c";
+            statusText.innerText = "❌ Lỗi kết nối đến Server API. Hãy chắc chắn app.py đang chạy!";
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -35,18 +35,6 @@ class PCBYOLOTrainer:
             success = self.model.export(format='onnx', opset=12)
             logging.info(f"Convert complete.")
         else:
-            logging.error("Dont have model to convert. Loadding model.")
+            logging.error("Dont have model to convert. Loading model.")
 
 
-if __name__ == "__main__":
-    # Khai báo đường dẫn tới file yaml vừa tạo
-    YAML_PATH = "dataset.yaml"
-
-    # Sử dụng bản Nano (yolov8n.pt) siêu nhẹ, chạy cực nhanh
-    trainer = PCBYOLOTrainer(data_yaml=YAML_PATH, model_type="yolov8n.pt")
-
-    # Bắt đầu train. Nếu máy yếu, bạn có thể giảm batch xuống 8.
-    trainer.train(epochs=50, image_size=640, batch_size=16)
-
-    # (Tùy chọn) Mở comment dòng dưới đây để tự động xuất file ONNX sau khi train xong
-    # trainer.export_to_onnx()

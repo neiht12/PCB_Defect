@@ -5,7 +5,7 @@ images/
 labels/
 runs/
 # Model / weights
-*.pt
+
 *.pth
 *.h5
 *.zip

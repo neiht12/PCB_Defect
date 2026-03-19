@@ -3,7 +3,7 @@ PCB_DATASET/
 YOLO_DATASET/
 images/
 labels/
-
+runs/
 # Model / weights
 *.pt
 *.pth
@@ -17,4 +17,3 @@ __pycache__/
 .idea/
 .vscode/
 .venv/
-runs/

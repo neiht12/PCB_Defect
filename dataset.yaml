@@ -1,0 +1,17 @@
+
+path: YOLO_DATASET
+train: images/train
+val: images/val
+test: images/test
+
+# Số lượng class
+nc: 6
+
+# Tên các class (Phải đúng thứ tự ID từ 0 đến 5)
+names:
+  0: missing_hole
+  1: mouse_bite
+  2: open_circuit
+  3: short
+  4: spur
+  5: spurious_copper
